@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net"
 	"reflect"
+	"sync"
 	"time"
 )
 
@@ -15,6 +16,7 @@ var ErrPipelineEmpty = errors.New("pipeline queue empty")
 
 // Client describes a Redis client.
 type Client struct {
+	m            sync.Mutex
 	conn         net.Conn
 	respReader   *RespReader
 	timeout      time.Duration
@@ -82,6 +84,8 @@ func (c *Client) Close() error {
 
 // Cmd calls the given Redis command.
 func (c *Client) Cmd(cmd string, args ...interface{}) *Resp {
+	c.m.Lock()
+	defer c.m.Unlock()
 	err := c.writeRequest(request{cmd, args})
 	if err != nil {
 		return NewRespIOErr(err)
